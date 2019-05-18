@@ -9,7 +9,7 @@ from layers import *
 
 def main():
 	batch_size = 64
-	epochs = 10
+	epochs = 1
 	img_rows, img_cols = 28, 28
 
 	(x_train, y_train), (x_test, y_test) = load_dataset(img_rows, img_cols)
@@ -17,7 +17,6 @@ def main():
 
 	A = make_full_adjacency(img_rows)
 	A_hat = A + np.eye(img_rows * img_cols)
-	A_hat = A_hat.astype(np.float32)
 
 	D_hat = calculate_degree_matrix(A_hat)
 
@@ -35,7 +34,7 @@ def main():
 	plt.show()
 
 	from tensorflow.keras.models import Sequential
-	from tensorflow.keras.layers import Dense, ReLU
+	from tensorflow.keras.layers import Dense, ReLU, Dropout
 
 	###################################################
 
@@ -44,27 +43,32 @@ def main():
 	# test = ReLU()(test)
 	# test = GCN(A_test, F_prime=2)(test)
 	# test = ReLU()(test)
-	# test = GCNPool()(test)
+	# test = GCNPool(batch_size=2)(test)
 	# test = Dense(10, activation='softmax')(test)
 	# tf.print(test)
-	# tf.print(y_train[0])
-	# tf.print(y_train[1])
+	#
+	# plot_data(x_train[0], y_train[0])
+	# plot_data(x_train[1], y_train[1])
+
+
 
 	###################################################
 
 	model = Sequential()
-	model.add(GCN(batch_A_hat, F_prime=32, input_shape=(img_cols*img_rows, 1)))
+	model.add(Dropout(0.5, input_shape=(img_cols*img_rows, 1)))
+	model.add(GCN(batch_A_hat, F_prime=16))
 	model.add(ReLU())
-	model.add(GCN(batch_A_hat, F_prime=32))
+	model.add(Dropout(0.5))
+	model.add(GCN(batch_A_hat, F_prime=8))
 	model.add(ReLU())
 	model.add(GCNPool(batch_size=batch_size))
 	model.add(Dense(10, activation='softmax'))
 
 	model.compile(loss=keras.losses.categorical_crossentropy,
-	              optimizer=keras.optimizers.Adadelta(),
+	              optimizer=keras.optimizers.Adam(),
 	              metrics=['accuracy'])
 
-	model.fit(x_train, y_train,
+	history = model.fit(x_train, y_train,
 	          batch_size=batch_size,
 	          epochs=epochs,
 	          verbose=1,
@@ -75,6 +79,23 @@ def main():
 
 	print('Test loss:', score[0])
 	print('Test accuracy:', score[1])
+
+	# summarize history for accuracy
+	plt.plot(history.history['accuracy'])
+	plt.plot(history.history['val_accuracy'])
+	plt.title('model accuracy')
+	plt.ylabel('accuracy')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'test'], loc='upper left')
+	plt.show()
+	# summarize history for loss
+	plt.plot(history.history['loss'])
+	plt.plot(history.history['val_loss'])
+	plt.title('model loss')
+	plt.ylabel('loss')
+	plt.xlabel('epoch')
+	plt.legend(['train', 'test'], loc='upper left')
+	plt.show()
 
 	return
 

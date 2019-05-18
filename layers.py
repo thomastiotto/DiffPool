@@ -31,12 +31,8 @@ class GCN(keras.layers.Layer):
 
 		hidden = tf.sparse.sparse_dense_matmul(self.A, hidden)
 
-		# return tf.expand_dims(hidden, 0)
 		return tf.reshape(hidden, [-1, in_size, out_weights])
 
-		# H = tf.sparse.sparse_dense_matmul(self.A, x)
-
-		# return tf.matmul(H, self.W)
 
 	def compute_output_shape(self, input_shape):
 		return (input_shape[0], self.F_prime)
@@ -62,11 +58,9 @@ class GCNPool(keras.layers.Layer):
 		super(GCNPool, self).build(input_shape)
 
 	def call(self, x):
-		# segment_ids = np.array([], dtype=np.int32).reshape(0, self.img_rows * self.img_cols)
 		segment_ids = np.array([], dtype=np.int32).reshape(0, self.in_size)
 
 		for b in range(self.batch_size):
-			# index = np.repeat(b, self.img_rows * self.img_cols)
 			index = np.repeat(b, self.in_size)
 			segment_ids = np.concatenate((segment_ids, index), axis=None)
 
@@ -77,4 +71,3 @@ class GCNPool(keras.layers.Layer):
 
 	def compute_output_shape(self, input_shape):
 		return (input_shape[0] / self.in_size, self.F_prime)
-		# return (input_shape[0] / (self.img_rows * self.img_cols), self.F_prime)
