@@ -36,24 +36,6 @@ def main():
 	from tensorflow.keras.models import Sequential
 	from tensorflow.keras.layers import Dense, ReLU, Dropout
 
-	###################################################
-
-	# A_test = batch_adjacency_matrix(A_hat, 2)
-	# test = GCN(A_test, F_prime=16, input_shape=(img_cols*img_rows, 1))(x_train[0:2])
-	# test = ReLU()(test)
-	# test = GCN(A_test, F_prime=2)(test)
-	# test = ReLU()(test)
-	# test = GCNPool(batch_size=2)(test)
-	# test = Dense(10, activation='softmax')(test)
-	# tf.print(test)
-	#
-	# plot_data(x_train[0], y_train[0])
-	# plot_data(x_train[1], y_train[1])
-
-
-
-	###################################################
-
 	model = Sequential()
 	model.add(Dropout(0.5, input_shape=(img_cols*img_rows, 1)))
 	model.add(GCN(batch_A_hat, F_prime=16))

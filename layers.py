@@ -25,13 +25,21 @@ class GCN(keras.layers.Layer):
 		in_weights = x.shape[2]
 		out_weights = self.W.shape[1]
 
+		# tf.print(tf.sparse.to_dense(self.A), summarize=-1)
+
+		# tf.print(x, summarize=-1)
 		x = tf.reshape(x, [-1, in_weights])
+		# tf.print(x, summarize=-1)
 
 		hidden = tf.matmul(x, self.W)
 
 		hidden = tf.sparse.sparse_dense_matmul(self.A, hidden)
 
-		return tf.reshape(hidden, [-1, in_size, out_weights])
+		# tf.print(hidden, summarize=-1)
+		hidden = tf.reshape(hidden, [-1, in_size, out_weights])
+		# tf.print(hidden, summarize=-1)
+
+		return hidden
 
 
 	def compute_output_shape(self, input_shape):
@@ -64,9 +72,14 @@ class GCNPool(keras.layers.Layer):
 			index = np.repeat(b, self.in_size)
 			segment_ids = np.concatenate((segment_ids, index), axis=None)
 
+		# tf.print(x, summarize=-1)
 		x = tf.reshape(x, [-1, self.F_prime])
+		# tf.print(x, summarize=-1)
 
-		return tf.math.segment_max(x, segment_ids)
+		x = tf.math.segment_max(x, segment_ids)
+		# tf.print(x, summarize=-1)
+
+		return x
 
 
 	def compute_output_shape(self, input_shape):
