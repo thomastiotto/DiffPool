@@ -28,21 +28,19 @@ def main():
 
     X = np.ones(img_cols * img_rows * 2, dtype=np.float32).reshape(batch_size, img_cols * img_rows, 1)
 
-    from tensorflow.keras.layers import Dense, LeakyReLU, Flatten
+    from tensorflow.keras.layers import Dense, Flatten
 
     ###################################################
 
-    test = GCN(batch_filtres, F_prime=2, input_shape=(img_cols * img_rows, 1))(X)
-    test = LeakyReLU(alpha=0.3)(test)
-    test = GCN(batch_filtres, F_prime=2)(test)
-    test = LeakyReLU(alpha=0.3)(test)
+    test = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
+    test = GCN(features=2, cheb=cheb)(test)
 
-    test = GCNPool(batch_size=2, mode="mean")(test)
+    # test = DiffPool()
 
-    tf.print(test, summarize=-1)
-    test = Flatten()(test)
-    tf.print(test, summarize=-1)
-    test = Dense(10, activation='softmax')(test)
+    tf.print(test[1], summarize=-1)
+    # test = Flatten()(test)
+    # tf.print(test[1], summarize=-1)
+    # test = Dense(10, activation='softmax')(test)
     # tf.print(test, summarize=-1)
 
     ###################################################
