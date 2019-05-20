@@ -14,7 +14,7 @@ class GCN(keras.layers.Layer):
         super(GCN, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        # input now is a tuple of tensors (A, X)
+        # input is a tuple of tensors (A, X)
         self.w.append(self.add_weight(name="W_0",
                                  shape=(input_shape[1][2], self.F_prime),
                                  initializer=tf.initializers.GlorotUniform(),
@@ -32,24 +32,25 @@ class GCN(keras.layers.Layer):
     def call(self, x):
         # input is a tuple (A, X)
         filtres = x[0]
-        x = x[1]
+        X = x[1]
 
-        # x = tf.cast(x, tf.float64)
-        batch_size = x.shape[0]
-        in_size = x.shape[1]
-        in_weights = x.shape[2]
+        # X = tf.cast(X, tf.float64)
+        batch_size = X.shape[0]
+        in_size = X.shape[1]
+        in_weights = X.shape[2]
         out_weights = self.F_prime
 
         # tf.print(tf.sparse.to_dense(self.A), summarize=-1)
 
-        # tf.print(x, summarize=-1)
-        x = tf.reshape(x, [-1, in_weights])
-        # tf.print(x, summarize=-1)
+        # tf.print(X, summarize=-1)
+        X = tf.reshape(X, [-1, in_weights])
+        # tf.print(X, summarize=-1)
 
         output = []
 
+        # do convolution
         for i in range(len(self.w)):
-            hidden = tf.matmul(x, self.w[i])
+            hidden = tf.matmul(X, self.w[i])
 
             # self.filtres[i] = self.convert_sparse_matrix_to_sparse_tensor(self.filtres[i])
             hidden = tf.sparse.sparse_dense_matmul(filtres[i], hidden)
@@ -77,12 +78,17 @@ class SimplePool(keras.layers.Layer):
         super(SimplePool, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.F_prime = input_shape[2]
-        self.in_size = input_shape[1]
+        # input is a tuple of tensors (A, X)
+        self.F_prime = input_shape[1][2]
+        self.in_size = input_shape[1][1]
 
         super(SimplePool, self).build(input_shape)
 
     def call(self, x):
+        # input is a tuple (A, X)
+        filtres = x[0]
+        X = x[1]
+
         segment_ids = np.array([], dtype=np.int32).reshape(0, self.in_size)
 
         for b in range(self.batch_size):
@@ -90,17 +96,17 @@ class SimplePool(keras.layers.Layer):
             segment_ids = np.concatenate((segment_ids, index), axis=None)
 
         # tf.print(x, summarize=-1)
-        x = tf.reshape(x, [-1, self.F_prime])
+        X = tf.reshape(X, [-1, self.F_prime])
         # tf.print(x, summarize=-1)
 
         if self.mode == "max":
-            x = tf.math.segment_max(x, segment_ids)
+            X = tf.math.segment_max(X, segment_ids)
         else:
-            x = tf.math.segment_mean(x, segment_ids)
+            X = tf.math.segment_mean(X, segment_ids)
 
         # tf.print(x, summarize=-1)
 
-        return x
+        return tf.tuple([filtres, X])
 
     def compute_output_shape(self, input_shape):
         return (input_shape[0] / self.in_size, self.F_prime)

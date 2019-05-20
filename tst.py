@@ -34,7 +34,7 @@ def main():
 
     test = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
     test = GCN(features=2, cheb=cheb)(test)
-
+    test = SimplePool(batch_size=batch_size, mode="max")(test)
     # test = DiffPool()
 
     tf.print(test[1], summarize=-1)
