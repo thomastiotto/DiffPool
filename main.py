@@ -8,7 +8,7 @@ cheb = True
 
 def main():
     batch_size = 100
-    epochs = 1
+    epochs = 20
     img_rows, img_cols = 28, 28
 
     (x_train, y_train), (x_test, y_test) = load_dataset(img_rows, img_cols)
@@ -26,16 +26,18 @@ def main():
     batch_filtres = [batch_adjacency_matrix(i, batch_size) for i in filtres]
 
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Dense, Dropout, LeakyReLU
+    from tensorflow.keras.layers import Dense, Dropout, LeakyReLU, Flatten
 
     model = Sequential()
     model.add(Dropout(0.5, input_shape=(img_cols * img_rows, 1)))
-    model.add(GCN(batch_filtres, F_prime=16))
+    model.add(GCN(batch_filtres, F_prime=128))
     model.add(LeakyReLU(alpha=0.3))
     model.add(Dropout(0.5))
-    model.add(GCN(batch_filtres, F_prime=10))
+    model.add(GCN(batch_filtres, F_prime=128))
     model.add(LeakyReLU(alpha=0.3))
-    model.add(GCNPool(batch_size=batch_size))
+#     model.add(GCNPool(batch_size=batch_size))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
     model.add(Dense(10, activation='softmax'))
 
     model.compile(loss=keras.losses.categorical_crossentropy,

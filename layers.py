@@ -17,7 +17,7 @@ class GCN(keras.layers.Layer):
         for i in range(len(self.filtres)):
             self.w.append(self.add_weight(name='W_' + str(i),
                                      shape=(input_shape[2], self.F_prime),
-                                     initializer='uniform',
+                                     initializer=tf.initializers.GlorotUniform(),
                                      trainable=True)
                                 )
 
@@ -58,8 +58,11 @@ class GCN(keras.layers.Layer):
 
 class GCNPool(keras.layers.Layer):
 
-    def __init__(self, batch_size, **kwargs):
+    def __init__(self, batch_size, mode, **kwargs):
+        assert mode == "max" or mode == "mean", "GCNPool must have 'max' or 'mean' as mode"
+
         self.batch_size = batch_size
+        self.mode = mode
 
         super(GCNPool, self).__init__(**kwargs)
 
@@ -80,10 +83,16 @@ class GCNPool(keras.layers.Layer):
         x = tf.reshape(x, [-1, self.F_prime])
         # tf.print(x, summarize=-1)
 
-        x = tf.math.segment_max(x, segment_ids)
+        if self.mode == "max":
+            x = tf.math.segment_max(x, segment_ids)
+        else:
+            x = tf.math.segment_mean(x, segment_ids)
+
         # tf.print(x, summarize=-1)
 
         return x
 
     def compute_output_shape(self, input_shape):
         return (input_shape[0] / self.in_size, self.F_prime)
+
+
