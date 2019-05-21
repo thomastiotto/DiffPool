@@ -5,9 +5,10 @@ from tensorflow import keras
 
 class GCN(keras.layers.Layer):
 
-    def __init__(self, features, cheb=False, **kwargs):
+    def __init__(self, features, cheb=False, dropout=0, **kwargs):
         self.F_prime = features
         self.cheb = cheb
+        self.dropout = dropout
 
         self.w = []
 
@@ -38,6 +39,9 @@ class GCN(keras.layers.Layer):
         in_size = X.shape[1]
         in_weights = X.shape[2]
         out_weights = self.F_prime
+
+        if self.dropout:
+            X = tf.nn.dropout(X, rate=0.5, noise_shape=[batch_size, in_size, in_weights])
 
         X = tf.reshape(X, [-1, in_weights])
 

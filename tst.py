@@ -32,7 +32,7 @@ def main():
 
     ###################################################
 
-    test = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
+    test = GCN(features=2, cheb=cheb, dropout=0.5, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
     test = DiffPool(max_clusters=1, cheb=cheb)(test)
     test = GCN(features=2, cheb=cheb)(test)
 

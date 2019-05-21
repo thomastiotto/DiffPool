@@ -40,7 +40,7 @@ def main():
     # model.add(Dense(128, activation='relu'))
     # model.add(Dense(10, activation='softmax'))
 
-    x = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, x_train))
+    x = GCN(features=2, cheb=cheb, dropout=0.5, input_shape=(img_cols * img_rows, 1))((batch_filtres, x_train))
     x = GCN(features=2, cheb=cheb)(x)
 
     model = Model(inputs=(batch_filtres, x_train), outputs=x)
