@@ -79,14 +79,18 @@ def normalise_adjacency_matrix(A):
     D = scipy.linalg.fractional_matrix_power(D, -0.5)
     # A = np.linalg.multi_dot([D, A, D])
     A = A.dot(D).transpose().dot(D)
-    return scipy.sparse.csr_matrix(A)
+
+    return A
 
 
-def batch_adjacency_matrix(filtre, batch_size):
-    batch_A_hat = scipy.sparse.kron(scipy.sparse.identity(batch_size), filtre)
+def make_batch_filtres(filtre, batch_size):
+    # batch_A_hat = scipy.sparse.kron(scipy.sparse.identity(batch_size), filtre)
+    # batch_A_hat = batch_A_hat.astype(np.float32)
+    # batch_A_hat = np.tile(filtre, batch_size)
+    batch_A_hat = np.repeat(filtre[np.newaxis, :, :], batch_size, axis=0)
     batch_A_hat = batch_A_hat.astype(np.float32)
 
-    return convert_sparse_matrix_to_sparse_tensor(batch_A_hat)
+    return batch_A_hat
 
 
 def plot_data(X, Y):
@@ -115,7 +119,7 @@ def chebyshev_polynomials(A):
     scaled_laplacian = (2. / largest_eigval[0]) * laplacian - scipy.eye(A.shape[0])
 
     cheb = []
-    cheb.append(scipy.sparse.csr_matrix(scipy.eye(A.shape[0])))
-    cheb.append(scipy.sparse.csr_matrix(scaled_laplacian))
+    cheb.append(scipy.eye(A.shape[0]))
+    cheb.append(scaled_laplacian)
 
     return cheb

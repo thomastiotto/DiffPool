@@ -24,7 +24,7 @@ def main():
         filtres = chebyshev_polynomials(A_hat)
     else:
         filtres = [A_hat]
-    batch_filtres = [batch_adjacency_matrix(i, batch_size) for i in filtres]
+    batch_filtres = [make_batch_filtres(i, batch_size) for i in filtres]
 
     X = np.ones(img_cols * img_rows * 2, dtype=np.float32).reshape(batch_size, img_cols * img_rows, 1)
 
@@ -33,9 +33,8 @@ def main():
     ###################################################
 
     test = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
+    test = DiffPool(max_clusters=1, cheb=cheb)(test)
     test = GCN(features=2, cheb=cheb)(test)
-    # test = SimplePool(batch_size=batch_size, mode="max")(test)
-    test = DiffPool(max_clusters=2, cheb=cheb)(test)
 
     tf.print(test[1], summarize=-1)
     # test = Flatten()(test)

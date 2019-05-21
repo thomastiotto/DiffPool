@@ -3,7 +3,7 @@ from tensorflow import keras
 from helper import *
 from layers import *
 
-cheb = True
+cheb = False
 
 
 def main():
@@ -23,22 +23,27 @@ def main():
         filtres = chebyshev_polynomials(A_hat)
     else:
         filtres = [A_hat]
-    batch_filtres = [batch_adjacency_matrix(i, batch_size) for i in filtres]
+    batch_filtres = [make_batch_filtres(i, batch_size) for i in filtres]
 
-    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.models import Model
     from tensorflow.keras.layers import Dense, Dropout, LeakyReLU, Flatten
 
-    model = Sequential()
-    model.add(Dropout(0.5, input_shape=(img_cols * img_rows, 1)))
-    model.add(GCN(batch_filtres, features=128))
-    model.add(LeakyReLU(alpha=0.3))
-    model.add(Dropout(0.5))
-    model.add(GCN(batch_filtres, features=128))
-    model.add(LeakyReLU(alpha=0.3))
-    # model.add(SimplePool(batch_size=batch_size, mode="mean"))
-    model.add(Flatten())
-    model.add(Dense(128, activation='relu'))
-    model.add(Dense(10, activation='softmax'))
+    # model = Sequential()
+    # model.add(Dropout(0.5, input_shape=(img_cols * img_rows, 1)))
+    # model.add(GCN(features=128))
+    # model.add(LeakyReLU(alpha=0.3))
+    # model.add(Dropout(0.5))
+    # model.add(GCN(features=128))
+    # model.add(LeakyReLU(alpha=0.3))
+    # # model.add(SimplePool(batch_size=batch_size, mode="mean"))
+    # model.add(Flatten())
+    # model.add(Dense(128, activation='relu'))
+    # model.add(Dense(10, activation='softmax'))
+
+    x = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, x_train))
+    x = GCN(features=2, cheb=cheb)(x)
+
+    model = Model(inputs=(batch_filtres, x_train), outputs=x)
 
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=keras.optimizers.Adam(),

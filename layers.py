@@ -34,33 +34,26 @@ class GCN(keras.layers.Layer):
         filtres = x[0]
         X = x[1]
 
-        # X = tf.cast(X, tf.float64)
         batch_size = X.shape[0]
         in_size = X.shape[1]
         in_weights = X.shape[2]
         out_weights = self.F_prime
 
-        # tf.print(tf.sparse.to_dense(self.A), summarize=-1)
-
-        # tf.print(X, summarize=-1)
         X = tf.reshape(X, [-1, in_weights])
-        # tf.print(X, summarize=-1)
 
         output = []
 
         # do convolution
         for i in range(len(self.w)):
+
             hidden = tf.matmul(X, self.w[i])
 
-            # self.filtres[i] = self.convert_sparse_matrix_to_sparse_tensor(self.filtres[i])
-            hidden = tf.sparse.sparse_dense_matmul(filtres[i], hidden)
-
-            # tf.print(hidden, summarize=-1)
             hidden = tf.reshape(hidden, [-1, in_size, out_weights])
-            # tf.print(hidden, summarize=-1)
+
+            hidden = tf.matmul(filtres[i], hidden)
 
             output.append(hidden)
-        # tf.print(tf.add_n(output), summarize=-1)
+
         return tf.tuple([filtres, tf.keras.activations.relu(tf.add_n(output))])
 
     def compute_output_shape(self, input_shape):
@@ -137,28 +130,16 @@ class DiffPool(keras.layers.Layer):
         (_, S) = self.pool(x)
         (_, Z) = self.embed(x)
 
-        # Z = tf.reshape(Z, [-1, num_features])
-
         S = tf.keras.activations.softmax(S, axis = 1)
         S_trans = tf.linalg.transpose(S)
 
         coarse_X = tf.matmul(S_trans, Z)
 
-        # tf.print(S, summarize=-1)
-        S = tf.reshape(S, [-1, self.max_clusters])
-        tf.print(S, summarize=-1)
-        # tf.print(S_trans, summarize=-1)
-        S_trans = tf.reshape(S_trans, [self.max_clusters, -1])
-        # tf.print(S_trans, summarize=-1)
-
         # TODO how do I deal with ChebNet's two filtres?
-        # TODO coarse_A is not sparse anymore
-        coarse_A = tf.sparse.sparse_dense_matmul(filtres[0], S)
-        tf.print(coarse_A, summarize=-1)
-        coarse_A = tf.matmul(S_trans, coarse_A)
-        tf.print(coarse_A, summarize=-1)
+        coarse_A = tf.matmul(filtres[0], S)
+        coarse_A = tf.matmul(S, coarse_A, transpose_a=True)
 
-        return (coarse_A, coarse_X)
+        return ([coarse_A], coarse_X)
 
     def compute_output_shape(self, input_shape):
-        return (self.max_clusters, input_shape[0][2])
+        return (self.max_clusters, input_shape[1][2])
