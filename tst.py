@@ -3,7 +3,7 @@ import networkx as nx
 from helper import *
 from layers import *
 
-cheb = True
+cheb = False
 
 
 def main():
@@ -34,8 +34,8 @@ def main():
 
     test = GCN(features=2, cheb=cheb, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
     test = GCN(features=2, cheb=cheb)(test)
-    test = SimplePool(batch_size=batch_size, mode="max")(test)
-    # test = DiffPool()
+    # test = SimplePool(batch_size=batch_size, mode="max")(test)
+    test = DiffPool(max_clusters=2, cheb=cheb)(test)
 
     tf.print(test[1], summarize=-1)
     # test = Flatten()(test)

@@ -72,7 +72,6 @@ class SimplePool(keras.layers.Layer):
     def __init__(self, batch_size, mode, **kwargs):
         assert mode == "max" or mode == "mean", "GCNPool must have 'max' or 'mean' as mode"
 
-        self.batch_size = batch_size
         self.mode = mode
 
         super(SimplePool, self).__init__(**kwargs)
@@ -81,6 +80,7 @@ class SimplePool(keras.layers.Layer):
         # input is a tuple of tensors (A, X)
         self.F_prime = input_shape[1][2]
         self.in_size = input_shape[1][1]
+        self.batch_size = input_shape[1][0]
 
         super(SimplePool, self).build(input_shape)
 
@@ -114,30 +114,51 @@ class SimplePool(keras.layers.Layer):
 
 class DiffPool(keras.layers.Layer):
 
-    def __init__(self, A, **kwargs):
-
-        self.A = A
+    def __init__(self, max_clusters, cheb, **kwargs):
+        self.max_clusters = max_clusters
+        self.cheb = cheb
 
         super(DiffPool, self).__init__(**kwargs)
 
     def build(self, input_shape):
+        self.embed = GCN(features=input_shape[1][2], cheb=self.cheb)
+        self.pool = GCN(features=self.max_clusters, cheb=self.cheb)
 
-        self.pool = GCN(self.A, input_shape[2])
-        self.embed = GCN(self.A, input_shape[2])
+        self.batch_size = input_shape[1][0]
 
         super(DiffPool, self).build(input_shape)
 
     def call(self, x):
+        # input is a tuple (A, X)
+        filtres = x[0]
+        X = x[1]
+        num_features = X.shape[2]
 
-        S = tf.keras.activations.softmax(self.pool(x), axis = 1)
-        Z = self.embed(x)
+        (_, S) = self.pool(x)
+        (_, Z) = self.embed(x)
 
-        coarse_X = tf.matmul(S, Z)
+        # Z = tf.reshape(Z, [-1, num_features])
 
-        coarse_A = tf.sparse.sparse_dense_matmul(self.A, S)
-        coarse_A = tf.matmul(tf.transpose(S), coarse_A, b_is_sparse=True)
+        S = tf.keras.activations.softmax(S, axis = 1)
+        S_trans = tf.linalg.transpose(S)
+
+        coarse_X = tf.matmul(S_trans, Z)
+
+        # tf.print(S, summarize=-1)
+        S = tf.reshape(S, [-1, self.max_clusters])
+        tf.print(S, summarize=-1)
+        # tf.print(S_trans, summarize=-1)
+        S_trans = tf.reshape(S_trans, [self.max_clusters, -1])
+        # tf.print(S_trans, summarize=-1)
+
+        # TODO how do I deal with ChebNet's two filtres?
+        # TODO coarse_A is not sparse anymore
+        coarse_A = tf.sparse.sparse_dense_matmul(filtres[0], S)
+        tf.print(coarse_A, summarize=-1)
+        coarse_A = tf.matmul(S_trans, coarse_A)
+        tf.print(coarse_A, summarize=-1)
 
         return (coarse_A, coarse_X)
 
     def compute_output_shape(self, input_shape):
-        return
+        return (self.max_clusters, input_shape[0][2])
