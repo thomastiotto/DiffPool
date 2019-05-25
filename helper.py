@@ -83,14 +83,15 @@ def normalise_adjacency_matrix(A):
     return A
 
 
-def make_batch_filtres(filtre, batch_size):
+def make_batch_filtres(filtres, batch_size):
     # batch_A_hat = scipy.sparse.kron(scipy.sparse.identity(batch_size), filtre)
     # batch_A_hat = batch_A_hat.astype(np.float32)
     # batch_A_hat = np.tile(filtre, batch_size)
-    batch_A_hat = np.repeat(filtre[np.newaxis, :, :], batch_size, axis=0)
-    batch_A_hat = batch_A_hat.astype(np.float32)
+    single_element = np.stack(filtres, axis=0)
+    batched = np.repeat(single_element[np.newaxis, :, :, :], batch_size, axis=0)
+    batched = batched.astype(np.float32)
 
-    return batch_A_hat
+    return batched
 
 
 def plot_data(X, Y):

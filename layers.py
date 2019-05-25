@@ -41,7 +41,7 @@ class GCN(keras.layers.Layer):
         out_weights = self.F_prime
 
         if self.dropout:
-            X = tf.nn.dropout(X, rate=0.5, noise_shape=[batch_size, in_size, in_weights])
+            X = tf.nn.dropout(X, rate=0.5)
 
         X = tf.reshape(X, [-1, in_weights])
 
@@ -54,7 +54,7 @@ class GCN(keras.layers.Layer):
 
             hidden = tf.reshape(hidden, [-1, in_size, out_weights])
 
-            hidden = tf.matmul(filtres[i], hidden)
+            hidden = tf.matmul(filtres[:][i], hidden)
 
             output.append(hidden)
 
@@ -134,16 +134,16 @@ class DiffPool(keras.layers.Layer):
         (_, S) = self.pool(x)
         (_, Z) = self.embed(x)
 
-        S = tf.keras.activations.softmax(S, axis = 1)
-        S_trans = tf.linalg.transpose(S)
+        S = tf.keras.activations.softmax(S, axis = 2)
+        # S_trans = tf.linalg.transpose(S)
 
-        coarse_X = tf.matmul(S_trans, Z)
+        coarse_X = tf.matmul(S, Z, transpose_a=True)
 
         # TODO how do I deal with ChebNet's two filtres?
         coarse_A = tf.matmul(filtres[0], S)
         coarse_A = tf.matmul(S, coarse_A, transpose_a=True)
 
-        return ([coarse_A], coarse_X)
+        return tf.tuple([coarse_A, coarse_X])
 
     def compute_output_shape(self, input_shape):
         return (self.max_clusters, input_shape[1][2])

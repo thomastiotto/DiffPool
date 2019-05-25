@@ -1,9 +1,7 @@
 import networkx as nx
 
-from helper import *
-from layers import *
-
-cheb = False
+from helper_nocheb import *
+from layers_nocheb import *
 
 
 def main():
@@ -11,20 +9,15 @@ def main():
     epochs = 1
     img_rows, img_cols = 3, 3
 
-    A = make_full_adjacency(img_rows)
+    dataset = read_graphfile("datasets", "PROTEINS", max_nodes=None)
+
+    load_mnist(28, 28)
+
+
     A_hat = A + np.eye(img_rows * img_cols)
-
-    G = nx.from_numpy_matrix(np.array(A))
-    nx.draw(G, with_labels=True)
-    # plt.show()
-
     A_hat = normalise_adjacency_matrix(A_hat)
 
-    if cheb:
-        filtres = chebyshev_polynomials(A_hat)
-    else:
-        filtres = [A_hat]
-    batch_filtres = [make_batch_filtres(i, batch_size) for i in filtres]
+    A_hat = np.repeat(A_hat[np.newaxis, :, :], batch_size, axis=0)
 
     X = np.ones(img_cols * img_rows * 2, dtype=np.float32).reshape(batch_size, img_cols * img_rows, 1)
 
@@ -32,11 +25,12 @@ def main():
 
     ###################################################
 
-    test = GCN(features=2, cheb=cheb, dropout=0.5, input_shape=(img_cols * img_rows, 1))((batch_filtres, X))
-    test = DiffPool(max_clusters=1, cheb=cheb)(test)
-    test = GCN(features=2, cheb=cheb)(test)
+    test = GCN(features=2, input_shape=(img_cols * img_rows, 1))([A_hat, X])
+    # test = SimplePool(mode="max")(test)
+    test = DiffPool(max_clusters=1)(test)
+    test = Dense(10, activation="softmax")(test[1])
 
-    tf.print(test[1], summarize=-1)
+    tf.print(test, summarize=-1)
     # test = Flatten()(test)
     # tf.print(test[1], summarize=-1)
     # test = Dense(10, activation='softmax')(test)
