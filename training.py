@@ -26,9 +26,9 @@ def make_batch(dataset, batch_size):
 loss_object = tf.keras.losses.CategoricalCrossentropy()
 optimizer = tf.keras.optimizers.Adam()
 
-train_loss = tf.keras.losses.Mean(name='train_loss', dtype=tf.float32)
-val_loss = tf.keras.losses.Mean(name='val_loss', dtype=tf.float32)
-test_loss = tf.keras.losses.Mean(name='test_loss', dtype=tf.float32)
+train_loss = tf.keras.metrics.Mean(name='train_loss', dtype=tf.float32)
+val_loss = tf.keras.metrics.Mean(name='val_loss', dtype=tf.float32)
+test_loss = tf.keras.metrics.Mean(name='test_loss', dtype=tf.float32)
 
 train_accuracy = tf.keras.metrics.CategoricalAccuracy(name='train_accuracy')
 val_accuracy = tf.keras.metrics.CategoricalAccuracy(name='validation_accuracy')
@@ -49,15 +49,26 @@ def train_step(model, batch):
     train_accuracy(y_batch_train, predictions)
 
 
-def test_step(model, batch):
+def val_step(model, batch):
     x_batch_val, a_batch_val, y_batch_val, batch_indicator_val = batch
 
-    val_predictions = model((a_batch_val, x_batch_val, batch_indicator_val))
-    val_loss = loss_object(y_batch_val, val_predictions)
+    predictions = model((a_batch_val, x_batch_val, batch_indicator_val))
+    loss = loss_object(y_batch_val, predictions)
 
-    # Update val metrics
-    val_loss(val_loss)
-    val_accuracy(y_batch_val, val_predictions)
+    # Update metrics
+    val_loss(loss)
+    val_accuracy(y_batch_val, predictions)
+
+
+def test_step(model, batch):
+    x_batch_test, a_batch_test, y_batch_test, batch_indicator_test = batch
+
+    predictions = model((a_batch_test, x_batch_test, batch_indicator_test))
+    loss = loss_object(y_batch_test, predictions)
+
+    # Update metrics
+    test_loss(loss)
+    test_accuracy(y_batch_test, predictions)
 
 
 def train_model(model, train, validation, test, epochs, batch_size):
@@ -69,48 +80,41 @@ def train_model(model, train, validation, test, epochs, batch_size):
     x_test, a_test, y_test, ind_test = test
 
     train_data = make_batch(train, batch_size)
+    val_data = make_batch(validation, batch_size)
+    test_data = make_batch(test, batch_size)
 
     # Iterate over epochs
     for epoch in range(epochs):
-        print('Start of epoch %d' % (epoch,))
+        print('Start of epoch %d' % (epoch))
 
         # Iterate over the batches of the dataset
         for step, batch_train in tqdm(enumerate(train_data), total=len(x_train) / batch_size):
             train_step(model, batch_train)
 
         # Display metrics at the end of each epoch.
-        train_acc = train_accuracy.result()
-        train_lss = train_loss.result()
-        print("Training accuracy over epoch %s: %s" % (epoch, float(train_acc)))
-        print("Training loss over epoch %s: %s" % (epoch, float(train_lss)))
-
-        # Reset training metrics at the end of each epoch
-        train_accuracy.reset_states()
-        train_loss.reset_states()
+        print("Training accuracy over epoch %d: %s" % (epoch, float(train_accuracy.result()*100)))
+        print("Training loss over epoch %d: %s" % (epoch, float(train_loss.result())))
 
         # Run a validation loop at the end of each epoch.
-        for step, batch_val in tqdm(enumerate(train_data), total=len(x_val) / batch_size):
-            test_step(model, batch_val)
+        for step, batch_val in tqdm(enumerate(val_data), total=len(x_val) / batch_size):
+            val_step(model, batch_val)
 
-        val_acc = val_accuracy.result()
-        val_lss = val_loss.result()
+        print("Validation accuracy at end of epoch %d: %s" % (epoch, float(val_accuracy.result()*100)))
+        print("Validation loss at end of epoch %d: %s" % (epoch, float(val_loss.result())))
 
-        print("Validation accuracy at end of epoch %s: %s" % (epoch, float(val_acc)))
-        print("Validation loss at end of epoch %s: %s" % (epoch, float(val_lss)))
-
+        # Reset metrics at the end of each epoch
+        train_accuracy.reset_states()
+        train_loss.reset_states()
         val_accuracy.reset_states()
-        val_loss.reset_state()
+        val_loss.reset_states()
 
 
-        # Run a test loop at the end of each training
-        for step, batch_test in tqdm(enumerate(x_test), total=len(x_test) / batch_size):
-            test_step(model, batch_test)
+    # Run a test loop at the end of training
+    for step, batch_test in tqdm(enumerate(test_data), total=len(x_test) / batch_size):
+        test_step(model, batch_test)
 
-        test_acc = test_accuracy.result()
-        test_lss = test_loss.result()
+    print("Test accuracy at end of training: %s" % (float(test_accuracy.result()*100)))
+    print("Validation loss at end of training: %s" % (float(test_loss.result())))
 
-        print("Test accuracy at end of training: %s" % (float(test_acc)))
-        print("Validation loss at end of training: %s" % (float(test_lss)))
-
-        test_accuracy.reset_states()
-        test_loss.reset_state()
+    test_accuracy.reset_states()
+    test_loss.reset_states()
