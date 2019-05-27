@@ -29,10 +29,7 @@ class GCN(keras.layers.Layer):
             X = tf.nn.dropout(X, rate=0.5)
 
         # do convolution
-
-        # X = tf.reshape(X, [-1, in_weights])
         hidden = tf.matmul(X, self.w)
-        # hidden = tf.reshape(hidden, [-1, in_size, out_weights])
 
         hidden = tf.matmul(filtre, hidden)
 
@@ -44,11 +41,10 @@ class GCN(keras.layers.Layer):
 
 class SimplePool(keras.layers.Layer):
 
-    def __init__(self, mode, batch_size, **kwargs):
+    def __init__(self, mode, **kwargs):
         assert mode == "max" or mode == "mean", "GCNPool must have 'max' or 'mean' as mode"
 
         self.mode = mode
-        self.batch_size = batch_size
 
         super(SimplePool, self).__init__(**kwargs)
 
@@ -63,22 +59,10 @@ class SimplePool(keras.layers.Layer):
         X = x[0][1]
         node_indicator = x[1]
 
-        # segment_ids = np.array([], dtype=np.int32).reshape(0, self.in_size)
-        #
-        # for b in range(self.batch_size):
-        #     index = np.repeat(b, self.in_size)
-        #     segment_ids = np.concatenate((segment_ids, index), axis=None)
-
-        # tf.print(x, summarize=-1)
-        # X = tf.reshape(X, [-1, self.F_prime])
-        # tf.print(node_indicator, summarize=-1)
-
         if self.mode == "max":
             X = tf.math.segment_max(X, node_indicator)
         else:
             X = tf.math.segment_mean(X, node_indicator)
-
-        # tf.print(x, summarize=-1)
 
         return tf.tuple([filtre, X])
 
@@ -94,7 +78,7 @@ class DiffPool(keras.layers.Layer):
         super(DiffPool, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.embed = GCN(features=input_shape[1][2])
+        self.embed = GCN(features=input_shape[1][1])
         self.pool = GCN(features=self.max_clusters)
 
         self.batch_size = input_shape[1][0]
@@ -105,13 +89,12 @@ class DiffPool(keras.layers.Layer):
         # input is a tuple (A, X)
         filtre = x[0]
         X = x[1]
-        num_features = X.shape[2]
+        node_indicator = x[2]
 
         (_, S) = self.pool(x)
         (_, Z) = self.embed(x)
 
-        S = tf.keras.activations.softmax(S, axis = 2)
-        # S_trans = tf.linalg.transpose(S)
+        S = tf.keras.activations.softmax(S, axis=1)
 
         coarse_X = tf.matmul(S, Z, transpose_a=True)
 

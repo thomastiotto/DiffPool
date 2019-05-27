@@ -9,16 +9,31 @@ def make_batch(dataset, batch_size):
     x, a, y, ind = dataset
 
     from sklearn.utils import shuffle
-    # x, a, y, ind = shuffle(x, a, y, ind)
+    x, a, y, ind = shuffle(x, a, y, ind)
 
     num_batches = math.ceil(len(x) / batch_size)
 
     for i in range(num_batches):
-        batch_x = np.concatenate(x[i * batch_size: (i + 1) * batch_size]).astype(np.float32)
-        batch_a = scipy.sparse.block_diag(a[i * batch_size: (i + 1) * batch_size]).todense().astype(np.float32)
-        batch_y = np.vstack(y[i * batch_size: (i + 1) * batch_size]).astype(np.float32)
-        batch_ind = np.vstack(ind[i * batch_size: (i + 1) * batch_size]).ravel()
-        batch_ind -= batch_ind[0] #rescale indicator so as not to have problems in SimplePool
+        batch_begin = i * batch_size
+        batch_end = (i + 1) * batch_size
+
+        batch_ind = ind[batch_begin : batch_end]
+        batch_x = x[batch_begin : batch_end]
+        batch_a = a[batch_begin : batch_end]
+        batch_y = y[batch_begin : batch_end]
+
+        # sort graphs based on indicator function
+        batch_ind, batch_x, batch_a, batch_y = list(map(list, zip(*sorted(zip(batch_ind, batch_x, batch_a, batch_y),
+                                                                          key=lambda x: x[0][0]))))
+
+        # scale indicator
+        for i, el in enumerate(batch_ind):
+            batch_ind[i] = el - el + i
+
+        batch_x = np.concatenate(batch_x).astype(np.float32)
+        batch_a = scipy.sparse.block_diag(batch_a).todense().astype(np.float32)
+        batch_y = np.vstack(batch_y).astype(np.float32)
+        batch_ind = np.vstack(batch_ind).ravel()
 
         yield batch_x, batch_a, batch_y, batch_ind
 
@@ -72,35 +87,26 @@ def test_step(model, batch):
 
 
 def train_model(model, train, validation, test, epochs, batch_size):
-    from timeit import default_timer as timer
-    from tqdm import tqdm_notebook as tqdm
-
-    x_train, a_train, y_train, ind_train = train
-    x_val, a_val, y_val, ind_val = validation
-    x_test, a_test, y_test, ind_test = test
-
-    train_data = make_batch(train, batch_size)
-    val_data = make_batch(validation, batch_size)
-    test_data = make_batch(test, batch_size)
+    from datetime import datetime
 
     # Iterate over epochs
     for epoch in range(epochs):
-        print('Start of epoch %d' % (epoch))
+        print("Epoch %d "% (epoch))
+        start_time = datetime.now()
+
+        train_data = make_batch(train, batch_size)
+        val_data = make_batch(validation, batch_size)
+        test_data = make_batch(test, batch_size)
 
         # Iterate over the batches of the dataset
-        for step, batch_train in tqdm(enumerate(train_data), total=len(x_train) / batch_size):
+        for step, batch_train in enumerate(train_data):
+            print("Batch %d" % (step), end="\r", flush=True)
             train_step(model, batch_train)
 
-        # Display metrics at the end of each epoch.
-        print("Training accuracy over epoch %d: %s" % (epoch, float(train_accuracy.result()*100)))
-        print("Training loss over epoch %d: %s" % (epoch, float(train_loss.result())))
-
         # Run a validation loop at the end of each epoch.
-        for step, batch_val in tqdm(enumerate(val_data), total=len(x_val) / batch_size):
+        for step, batch_val in enumerate(val_data):
             val_step(model, batch_val)
-
-        print("Validation accuracy at end of epoch %d: %s" % (epoch, float(val_accuracy.result()*100)))
-        print("Validation loss at end of epoch %d: %s" % (epoch, float(val_loss.result())))
+        print(f"Acc: {float(val_accuracy.result() * 100)}  Loss: {float(val_loss.result() * 100)}", end="\r", flush=True)
 
         # Reset metrics at the end of each epoch
         train_accuracy.reset_states()
@@ -108,12 +114,15 @@ def train_model(model, train, validation, test, epochs, batch_size):
         val_accuracy.reset_states()
         val_loss.reset_states()
 
+        end_time = datetime.now()
+        print(f"\nElapsed time: {(end_time - start_time).total_seconds()} seconds")
+
 
     # Run a test loop at the end of training
-    for step, batch_test in tqdm(enumerate(test_data), total=len(x_test) / batch_size):
+    for step, batch_test in enumerate(test_data):
         test_step(model, batch_test)
 
-    print("Test accuracy at end of training: %s" % (float(test_accuracy.result()*100)))
+    print("\nTest accuracy at end of training: %s" % (float(test_accuracy.result()*100)))
     print("Validation loss at end of training: %s" % (float(test_loss.result())))
 
     test_accuracy.reset_states()

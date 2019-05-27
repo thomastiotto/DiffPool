@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import os
 import re
+from random import shuffle
 
 
 def read_graphfile(datadir, dataname, max_nodes=None):
@@ -122,57 +123,47 @@ def read_graphfile(datadir, dataname, max_nodes=None):
 
 
 def make_train_test_val(dataset):
-    import pickle
 
-    try:
-        (x_train, a_train, y_train, ind_train) = pickle.load(open("./tmp/train.pickle", "rb"))
-        (x_val, a_val, y_val, ind_val) = pickle.load(open("./tmp/val.pickle", "rb"))
-        (x_test, a_test, y_test, ind_test) = pickle.load(open("./tmp/test.pickle", "rb"))
-        num_classes = pickle.load(open("./tmp/num_classes.pickle", "rb"))
-    except (OSError, IOError) as e:
-        num_classes = len(np.unique([get_graph_label(i) for i in dataset]))
+    num_classes = len(np.unique([get_graph_label(i) for i in dataset]))
 
-        train, validate, test = np.split(dataset, [int(.6*len(dataset)), int(.8*len(dataset))])
+    shuffle(dataset)
 
-        graph_counter = 0
+    train, validate, test = np.split(dataset, [int(.6*len(dataset)), int(.8*len(dataset))])
 
-        x_train = []
-        a_train = []
-        y_train = []
-        ind_train = []
-        for g in train:
-            x_train.append(get_graph_node_features(g))
-            a_train.append(get_graph_adjacency(g))
-            y_train.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
-            ind_train.append(make_node_indicator(g, graph_counter))
-            graph_counter += 1
+    graph_counter = 0
 
-        x_val = []
-        a_val = []
-        y_val = []
-        ind_val = []
-        for g in validate:
-            x_val.append(get_graph_node_features(g))
-            a_val.append(get_graph_adjacency(g))
-            y_val.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
-            ind_val.append(make_node_indicator(g, graph_counter))
-            graph_counter += 1
+    x_train = []
+    a_train = []
+    y_train = []
+    ind_train = []
+    for g in train:
+        x_train.append(get_graph_node_features(g))
+        a_train.append(get_graph_adjacency(g))
+        y_train.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
+        ind_train.append(make_node_indicator(g, graph_counter))
+        graph_counter += 1
 
-        x_test = []
-        a_test = []
-        y_test = []
-        ind_test = []
-        for g in test:
-            x_test.append(get_graph_node_features(g))
-            a_test.append(get_graph_adjacency(g))
-            y_test.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
-            ind_test.append(make_node_indicator(g, graph_counter))
-            graph_counter += 1
+    x_val = []
+    a_val = []
+    y_val = []
+    ind_val = []
+    for g in validate:
+        x_val.append(get_graph_node_features(g))
+        a_val.append(get_graph_adjacency(g))
+        y_val.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
+        ind_val.append(make_node_indicator(g, graph_counter))
+        graph_counter += 1
 
-        pickle.dump((x_train, a_train, y_train, ind_train), open("./tmp/train.pickle", "wb"))
-        pickle.dump((x_val, a_val, y_val, ind_val), open("./tmp/val.pickle", "wb"))
-        pickle.dump((x_test, a_test, y_test, ind_test), open("./tmp/test.pickle", "wb"))
-        pickle.dump(num_classes, open("./tmp/num_classes.pickle", "wb"))
+    x_test = []
+    a_test = []
+    y_test = []
+    ind_test = []
+    for g in test:
+        x_test.append(get_graph_node_features(g))
+        a_test.append(get_graph_adjacency(g))
+        y_test.append(keras.utils.to_categorical(get_graph_label(g), num_classes))
+        ind_test.append(make_node_indicator(g, graph_counter))
+        graph_counter += 1
 
     return (x_train, a_train, y_train, ind_train), (x_val, a_val, y_val, ind_val), (x_test, a_test, y_test, ind_test), num_classes
 
