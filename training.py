@@ -17,10 +17,10 @@ def make_batch(dataset, batch_size):
         batch_begin = i * batch_size
         batch_end = (i + 1) * batch_size
 
-        batch_ind = ind[batch_begin : batch_end]
-        batch_x = x[batch_begin : batch_end]
-        batch_a = a[batch_begin : batch_end]
-        batch_y = y[batch_begin : batch_end]
+        batch_ind = ind[batch_begin: batch_end]
+        batch_x = x[batch_begin: batch_end]
+        batch_a = a[batch_begin: batch_end]
+        batch_y = y[batch_begin: batch_end]
 
         # sort graphs based on indicator function
         batch_ind, batch_x, batch_a, batch_y = list(map(list, zip(*sorted(zip(batch_ind, batch_x, batch_a, batch_y),
@@ -88,10 +88,17 @@ def test_step(model, batch):
 
 def train_model(model, train, validation, test, epochs, batch_size):
     from datetime import datetime
+    from tqdm import tqdm_notebook as tqdm
+
+    printing_steps = 10
+
+    start_training = datetime.now()
 
     # Iterate over epochs
-    for epoch in range(epochs):
-        print("Epoch %d "% (epoch))
+    for epoch in tqdm(range(epochs)):
+        # if epoch % printing_steps == 0 or epoch == epochs:
+            # print("Epoch %d " % (epoch), end="\t")
+
         start_time = datetime.now()
 
         train_data = make_batch(train, batch_size)
@@ -100,13 +107,13 @@ def train_model(model, train, validation, test, epochs, batch_size):
 
         # Iterate over the batches of the dataset
         for step, batch_train in enumerate(train_data):
-            print("Batch %d" % (step), end="\r", flush=True)
             train_step(model, batch_train)
 
         # Run a validation loop at the end of each epoch.
         for step, batch_val in enumerate(val_data):
             val_step(model, batch_val)
-        print(f"Acc: {float(val_accuracy.result() * 100)}  Loss: {float(val_loss.result() * 100)}", end="\r", flush=True)
+        # if epoch % printing_steps == 0 or epoch == epochs:
+            # print(f"Acc: {float(val_accuracy.result() * 100):.2f}  Loss: {float(val_loss.result() * 100):.2f}", end="  ")
 
         # Reset metrics at the end of each epoch
         train_accuracy.reset_states()
@@ -115,15 +122,33 @@ def train_model(model, train, validation, test, epochs, batch_size):
         val_loss.reset_states()
 
         end_time = datetime.now()
-        print(f"\nElapsed time: {(end_time - start_time).total_seconds()} seconds")
-
+        # if epoch % printing_steps == 0 or epoch == epochs:
+        #     print(f"Time: {(end_time - start_time).total_seconds():.2f} seconds")
 
     # Run a test loop at the end of training
     for step, batch_test in enumerate(test_data):
         test_step(model, batch_test)
 
-    print("\nTest accuracy at end of training: %s" % (float(test_accuracy.result()*100)))
-    print("Validation loss at end of training: %s" % (float(test_loss.result())))
+    # print(f"Test accuracy at end of training: {float(test_accuracy.result() * 100):.2f}")
+    # print(f"Test loss at end of training: {float(test_loss.result() * 100):.2f}")
 
-    test_accuracy.reset_states()
-    test_loss.reset_states()
+    # test_accuracy.reset_states()
+    # test_loss.reset_states()
+
+    training_time = datetime.now() - start_training
+
+    return test_accuracy.result(), test_loss.result(), training_time.total_seconds()
+
+
+def k_fold_validation(training, k=10):
+    acc_list = []
+    loss_list = []
+    time_list = []
+
+    for i in range(k):
+        acc, lss, tim = training()
+        acc_list.append(acc)
+        loss_list.append(lss)
+        time_list.append(tim)
+
+    return np.mean(acc_list), np.mean(loss_list), np.mean(time_list)

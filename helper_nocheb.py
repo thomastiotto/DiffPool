@@ -194,6 +194,25 @@ def get_graph_adjacency(g):
     return nx.adjacency_matrix(g).astype("float32")
 
 
+def calculate_avg_nodes(dataset):
+
+    return np.average( [len(i.nodes) for i in dataset] )
+
+
+def print_dataset_stats(dataset, train, val, test, dataset_name, avg_num_nodes, num_classes):
+    import math
+
+    print(f"################ {dataset_name} ################")
+    print(f"Number of graphs \t\t\t {len(dataset)}")
+    print(f"Number of classes \t\t\t {num_classes}")
+    print(f"Average number of nodes \t {math.ceil(avg_num_nodes)}")
+    print(f"Train \t\t\t\t\t\t {len(train[0])}")
+    print(f"Val \t\t\t\t\t\t {len(val[0])}")
+    print(f"Test \t\t\t\t\t\t {len(test[0])}")
+
+    return
+
+
 def preprocess_dataset(train, validation, test):
     for i in range(len(train[1])):
         train[1][i] = train[1][i] + scipy.sparse.eye(train[1][i].shape[0])

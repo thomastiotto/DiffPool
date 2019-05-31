@@ -2,43 +2,45 @@ import networkx as nx
 
 from helper_nocheb import *
 from layers_nocheb import *
+from training import make_batch
+
+from tensorflow.keras.layers import Dense
 
 
 def main():
     batch_size = 2
-    epochs = 1
-    img_rows, img_cols = 3, 3
 
-    dataset = read_graphfile("datasets", "PROTEINS", max_nodes=None)
+    dataset = read_graphfile("datasets", "ENZYMES", max_nodes=None)
 
-    load_mnist(28, 28)
+    train, val, test, num_classes = make_train_test_val(dataset)
+    avg_num_nodes = calculate_avg_nodes(dataset)
 
+    train, val, test = preprocess_dataset(train, val, test)
 
-    A_hat = A + np.eye(img_rows * img_cols)
-    A_hat = normalise_adjacency_matrix(A_hat)
+    batch = make_batch(train, batch_size)
 
-    A_hat = np.repeat(A_hat[np.newaxis, :, :], batch_size, axis=0)
+    for x, a, y, ind in batch:
 
-    X = np.ones(img_cols * img_rows * 2, dtype=np.float32).reshape(batch_size, img_cols * img_rows, 1)
+        test = GCN(features=4, dropout=0.5)((a, x, ind))
+        test = DiffPool(max_clusters=2)(test)
+        test = GCN(features=4, dropout=0.5)(test)
+        test = DiffPool(max_clusters=1)(test)
+        # print("A:")
+        # tf.print(test[0], summarize=-1)
+        # print("data:")
+        # tf.print(test[1], summarize=-1)
+        # print("indicator:")
+        # tf.print(test[2], summarize=-1)
 
-    from tensorflow.keras.layers import Dense, Flatten
+        test = ReshapeForDense()(test)
+        print("data reshaped:")
+        tf.print(test, summarize=-1)
 
-    ###################################################
+        test = Dense(num_classes, activation="softmax")(test)
+        print("Classification:")
+        tf.print(test, summarize=-1)
 
-    test = GCN(features=2, input_shape=(img_cols * img_rows, 1))([A_hat, X])
-    # test = SimplePool(mode="max")(test)
-    test = DiffPool(max_clusters=1)(test)
-    test = Dense(10, activation="softmax")(test[1])
-
-    tf.print(test, summarize=-1)
-    # test = Flatten()(test)
-    # tf.print(test[1], summarize=-1)
-    # test = Dense(10, activation='softmax')(test)
-    # tf.print(test, summarize=-1)
-
-    ###################################################
-
-    return
+        return
 
 
 main()
