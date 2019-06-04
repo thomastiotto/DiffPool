@@ -12,7 +12,7 @@ class GCN(keras.layers.Layer):
         super(GCN, self).__init__(**kwargs)
 
     def build(self, input_shape):
-        self.w = self.add_weight(name="W_0",
+        self.w = self.add_weight(name="W",
                                  shape=(input_shape[1][1], self.F_prime),
                                  initializer=tf.initializers.GlorotUniform(),
                                  trainable=True)
@@ -25,7 +25,7 @@ class GCN(keras.layers.Layer):
         node_indicator = x[2]
 
         if self.dropout:
-            X = tf.nn.dropout(X, rate=0.5)
+            X = tf.nn.dropout(X, rate=self.dropout)
 
         # do convolution
         hidden = tf.matmul(X, self.w)
