@@ -1,8 +1,6 @@
-import networkx as nx
-
-from helper_nocheb import *
-from layers_nocheb import *
-from training import make_batch
+from core.no_cheb.helper import *
+from core.no_cheb.layers import *
+from core.no_cheb.training import make_batch
 
 from tensorflow.keras.layers import Dense
 
@@ -22,8 +20,6 @@ def main():
     for x, a, y, ind in batch:
 
         test = GCN(features=4, dropout=0.5)((a, x, ind))
-        test = DiffPool(max_clusters=2)(test)
-        test = GCN(features=4, dropout=0.5)(test)
         test = DiffPool(max_clusters=1)(test)
         # print("A:")
         # tf.print(test[0], summarize=-1)

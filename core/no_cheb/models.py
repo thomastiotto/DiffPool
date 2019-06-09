@@ -1,5 +1,5 @@
 import tensorflow as tf
-from layers_nocheb import *
+from core.no_cheb.layers import *
 from tensorflow.keras.layers import Dense, Flatten, Input, ReLU
 
 
@@ -49,7 +49,7 @@ class GCN32Mean( tf.keras.Model ):
 
 class GCN32Diff( tf.keras.Model ):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, avg_num_nodes):
         super( GCN32Diff, self ).__init__()
 
         self.conv_1 = GCN( features=32, dropout=0.5 )
@@ -119,12 +119,15 @@ class GCN3232Mean( tf.keras.Model ):
 
 class GCN3232Reshape( tf.keras.Model ):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, avg_num_nodes):
         super( GCN3232Reshape, self ).__init__()
+
+        import math
 
         self.conv_1 = GCN( features=32, dropout=0.5 )
         self.conv_2 = GCN( features=32, dropout=0.5 )
-        self.pool_1 = ReshapeForDense()
+        self.pool_1 = DiffPool( max_clusters=math.ceil( avg_num_nodes / 10 ) )
+        self.pool_2 = ReshapeForDense()
         self.classifier = Dense( num_classes, activation="softmax" )
 
     def call(self, inputs):
@@ -135,18 +138,19 @@ class GCN3232Reshape( tf.keras.Model ):
         x = self.conv_1( inputs )
         x = self.conv_2( x )
         x = self.pool_1( x )
-        x = Dense( 512, activation='relu' )( x[1] )
+        x = self.pool_2( x )
+        x = Dense( 512, activation='relu' )( x )
         x = self.classifier( x )
 
         return x
 
 
-class GCN32632Diff( tf.keras.Model ):
+class GCN3232Diff( tf.keras.Model ):
 
     def __init__(self, num_classes, avg_num_nodes):
         import math
 
-        super( GCN32632Diff, self ).__init__()
+        super( GCN3232Diff, self ).__init__()
 
         #         math.ceil(avg_num_nodes/10)
         self.conv_1 = GCN( features=32, dropout=0.5 )

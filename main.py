@@ -1,6 +1,6 @@
-from helper_nocheb import *
-from training import *
-from models import *
+from core.no_cheb.helper import *
+from core.no_cheb.training import *
+from core.no_cheb.models import *
 
 from datetime import datetime
 from prettytable import PrettyTable
@@ -22,7 +22,7 @@ def print_results(maxpool_acc, maxpool_loss, maxpool_time, meanpool_acc, meanpoo
 def main():
     batch_size = 32
     epochs = 100
-    dataset_name = "PROTEINS"  # PROTEINS, ENZYMES, DD
+    dataset_name = "PROTEINS"  # PROTEINS, ENZYMES
     k_validation = 10
 
     start = datetime.now()
@@ -155,7 +155,7 @@ def main():
     print( "GCN3232Reshape" )
     reshape_acc, reshape_loss, reshape_time = k_fold_validation( lambda:
                                                                  train_model(
-                                                                         GCN3232Reshape( num_classes ),
+                                                                         GCN3232Reshape( num_classes, avg_num_nodes ),
                                                                          train,
                                                                          val,
                                                                          test,
